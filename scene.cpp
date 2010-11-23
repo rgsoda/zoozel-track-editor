@@ -4,6 +4,9 @@
 #include "scene.h"
 #include "mainwindow.h"
 #include <stdlib.h>
+#include <qjson/parser.h>
+#include <qjson/serializer.h>
+
 scene::scene() : QWidget() , field(0,0,870,600), view(&field, this), poly(0), polys()
 {
     view.setVerticalScrollBarPolicy( Qt::ScrollBarAlwaysOff );
@@ -15,7 +18,7 @@ scene::scene() : QWidget() , field(0,0,870,600), view(&field, this), poly(0), po
                               );
     view.setRenderHint(QPainter::Antialiasing);
     view.viewport()->setFocusProxy( this );
-    view.setBackgroundBrush(QPixmap("images/track.jpg"));
+
     lastx = 0;
     lasty = 0;
     poly = new QPolygon();
@@ -41,7 +44,7 @@ void scene::mousePressEvent(QMouseEvent *event) {
         if(!first_point_in_poly) {
             field.addLine(lastx,lasty,firstPoint.x(),firstPoint.y());
             poly->append(QPoint(firstPoint.x(),firstPoint.y()));
-            addPoly(poly);
+            addPoly(*poly);
             return;
         }
 
@@ -60,21 +63,54 @@ void scene::mousePressEvent(QMouseEvent *event) {
 
 }
 
-void scene::addPoly(QPolygon *poly) {
-    polys.append(poly);
+void scene::addPoly(QPolygon &p) {
+    polys.append(&p);
     poly = new QPolygon();
+
     lastx = 0;
     lasty = 0;
 }
 
 
 void scene::saveActualFile() {
-    foreach(QPolygon *p, polys) {
-        qDebug("POLY SIZE = %d",p->size());
+    //QJson::Parser parser;
+    QJson::Serializer serializer;
+
+    QVariantList polygons;
+    int polysIter = 0;
+    foreach(QPolygon *p, polys) {       
+        QList<QVariant> polygonElements;
         for(int i=0;i<p->size();i++) {
+            QVariantMap point;
+
             qDebug("%d-%d",p->point(i).x(),p->point(i).y());
+            point.insert("x",p->point(i).x());
+            point.insert("y",p->point(i).y());
+
+            polygonElements.insert(i,point);
         }
 
-
+        polygons.insert(polysIter,polygonElements);
+        polysIter++;
     }
+
+    QByteArray json = serializer.serialize(polygons);
+    qDebug() << json;
+
+    QFile file(QString("%1/%2.dat").arg(path,fileName));
+    file.open(QIODevice::WriteOnly);
+    QDataStream out(&file);
+    out << json;
+}
+
+void scene::setTrack(QString &trackFileName) {
+    QPixmap pixmap(trackFileName);
+    view.setBackgroundBrush(pixmap);
+    view.resize(pixmap.size());
+    field.setSceneRect(pixmap.rect());
+    dynamic_cast<MainWindow*>(this->parent())->resize(pixmap.size());
+    QFileInfo pathInfo( trackFileName );
+    this->path = pathInfo.absolutePath();
+    this->fileName = pathInfo.baseName();
+
 }

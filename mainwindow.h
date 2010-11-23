@@ -14,10 +14,12 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
+    bool setFileName(QString &path);
 
 private:
     Ui::MainWindow *ui;
     scene *s;
+    QString fileName;
 private slots:
     void saveActualFile();
 };

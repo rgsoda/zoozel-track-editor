@@ -12,11 +12,11 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    scene.cpp \
-    json.cpp
+    scene.cpp
 
 HEADERS  += mainwindow.h \
-    scene.h \
-    json.h
+    scene.h
 
 FORMS    += mainwindow.ui
+
+LIBS += -lqjson
